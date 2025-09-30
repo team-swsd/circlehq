@@ -1,0 +1,6 @@
+package: server
+generate:
+  chi-server: true
+output: ../internal/server/server.gen.go
+output-options:
+  skip-prune: true

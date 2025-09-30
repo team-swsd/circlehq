@@ -1,0 +1,6 @@
+package: server
+generate:
+  models: true
+output: ../internal/server/types.gen.go
+output-options:
+  skip-prune: true

@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: Nigel - Mnp yoyakubango wo Torini Iku
+  version: '1.0'
+servers: 
+  - url: "http://circlehq.swsd.net"
+security: []
+paths:
+  /webhooks/square:
+    post:
+      summary: Receive Square webhook events
+      description: This endpoint receives webhook notifications from Square.
+      operationId: squareRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SquareWebhook'
+      responses:
+        '200':
+          description: Webhook received successfully.
+        '400':
+          description: Bad request, e.g., invalid JSON format.
+        '500':
+          description: Internal server error.
+  /api/dashboard-sse:
+    get:
+      summary: dashboard api
+      operationId: GetDashboardData
+      responses:
+        '200':
+          description: OK
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardDataResponse'
+        '400':
+          description: Bad Request
+  /dashboard:
+    get:
+      summary: dashboard
+      operationId: dashboardPage
+      responses: 
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+  /reservation:
+    get:
+      summary: google spreadsheet
+      operationId: spreadsheetPage
+      responses: 
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+  /:
+    get:
+      summary: index
+      operationId: indexPage
+      responses: 
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+  /health:
+    parameters: []
+    get:
+      summary: Get Health Check
+      operationId: HealthCheck
+      responses:
+        '200':
+          description: OK
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/HealthStatusResponse'
+        '400':
+          description: Bad Request
+
+components:
+  schemas:
+    SquareWebhook:
+      type: object
+      required:
+        - merchant_id
+        - type
+        - event_id
+        - created_at
+        - data
+      properties:
+        merchant_id:
+          type: string
+          description: The ID of the merchant associated with the event.
+          example: "MLB12S252NEK2"
+        type:
+          type: string
+          description: The type of the event.
+          example: "inventory.count.updated"
+        event_id:
+          type: string
+          format: uuid
+          description: A unique ID for the event.
+          example: "e98ab5f9-cb9f-37a9-b1dd-112adb65927c"
+        created_at:
+          type: string
+          format: date-time
+          description: The timestamp of when the event was created.
+          example: "2025-08-19T01:34:19.385040571Z"
+        data:
+          $ref: '#/components/schemas/WebhookData'
+    WebhookData:
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of the data object.
+          example: "inventory_counts"
+        id:
+          type: string
+          format: uuid
+          description: The ID of the data object.
+          example: "c394339b-8032-4a90-b917-ac32164a553c"
+        object:
+          type: object
+          properties:
+            inventory_counts:
+              type: array
+              items:
+                $ref: '#/components/schemas/InventoryCount'
+    InventoryCount:
+      type: object
+      properties:
+        calculated_at:
+          type: string
+          format: date-time
+          description: The timestamp of when the inventory count was calculated.
+          example: "2025-08-19T01:34:19.377Z"
+        catalog_object_id:
+          type: string
+          description: The ID of the catalog object (item variation).
+          example: "QEDFYHLPWCEFA37EWY4SRYMQ"
+        catalog_object_type:
+          type: string
+          description: The type of the catalog object.
+          example: "ITEM_VARIATION"
+        location_id:
+          type: string
+          description: The ID of the location where the inventory is tracked.
+          example: "LZMB30HK03T3Y"
+        quantity:
+          type: string
+          description: The new inventory quantity as a string.
+          example: "4"
+        state:
+          type: string
+          description: The inventory state.
+          example: "IN_STOCK"
+
+    ErrorResponse:
+      title: ErrorResponse
+      type: object
+      properties:
+        status_code:
+          type: integer
+        detail:
+          type: string
+
+    HealthStatusResponse:
+      title: HealthStatusResponse
+      description: Health Check Response Information
+      type: object
+      properties:
+        status:
+          type: integer
+        message:
+          type: string
+    
+    DashboardDataResponse:
+      title: DashboardDataResponse
+      description: DashboardDataResponse
+      type: object
+      properties: 
+        status:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Items'
+
+    Items:
+      type: object
+      properties: 
+        item_name:
+          type: string
+        normal_inventory_count:
+          type: integer
+        reserve_inventory_count:
+          type: integer
+        secure_inventory_count:
+          type: integer
