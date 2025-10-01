@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, Arial, sans-serif; margin: 1.5rem; line-height: 1.5; }
+    h1 { margin-top: 0; }
+    .meta { font-size: .9rem; color: #666; }
+    .items { margin: 1.5rem 0; display: grid; gap: 1.5rem; }
+    .item { border: 1px solid #ccc; border-radius: 8px; padding: 1rem 1.25rem; background: #fafafa; }
+    @media (prefers-color-scheme: dark) { .item { background: #1e1e1e; border-color:#444; } body { background:#111; color:#ddd; } .meta { color:#999; } table { color:#ddd; } }
+    .item h2 { margin: 0 0 .25rem; font-size: 1.15rem; }
+    .item-id { font-family: monospace; font-size: .75rem; color:#555; }
+    .variations-summary { font-size: .8rem; margin:.25rem 0 .75rem; color:#555; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-size: .75rem; letter-spacing: .5px; text-transform: uppercase; }
+    @media (prefers-color-scheme: dark) { th { background:#2a2a2a; } th, td { border-color:#444; } }
+    tbody tr:nth-child(even) { background: rgba(0,0,0,.03); }
+    .tag { display:inline-block; padding: 2px 6px; border-radius: 12px; font-size: .65rem; font-weight: 600; background:#eee; }
+    @media (prefers-color-scheme: dark) { .tag { background:#333; } }
+    .tag.sellable { background:#1b873f; color:#fff; }
+    .tag.unsellable { background:#c44536; color:#fff; }
+    .empty { font-style: italic; color:#666; }
+    footer { margin-top:3rem; font-size:.7rem; text-align:center; color:#777; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard</h1>
+  <div class="meta">
+    アイテム数: {{ len .Items }}
+  </div>
+
+  {{ if not .Items }}
+    <p class="empty">アイテムはありません。</p>
+  {{ else }}
+    <div class="items">
+      {{ range $i, $item := .Items }}
+        <section class="item">
+          <h2>{{ $item.Name }}</h2>
+          <div class="item-id">ID: {{ $item.ID }}</div>
+          <div class="variations-summary">バリエーション: {{ len $item.Variations }}</div>
+
+          {{ if not $item.Variations }}
+            <p class="empty">バリエーションはありません。</p>
+          {{ else }}
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Sellable</th>
+                    <th>Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{ range $j, $v := $item.Variations }}
+                    <tr>
+                      <td>{{ add $j 1 }}</td>
+                      <td>{{ $v.Name }}</td>
+                      <td>{{ $v.Price }}</td>
+                      <td>
+                        {{ if $v.Sellable }}
+                          <span class="tag sellable">SELLABLE</span>
+                        {{ else }}
+                          <span class="tag unsellable">UNSELLABLE</span>
+                        {{ end }}
+                      </td>
+                      <td>{{ $v.Quantity }}</td>
+                    </tr>
+                  {{ end }}
+                </tbody>
+              </table>
+            </div>
+          {{ end }}
+        </section>
+      {{ end }}
+    </div>
+  {{ end }}
+
+  <footer>Generated at {{ now }}</footer>
+</body>
+</html>
