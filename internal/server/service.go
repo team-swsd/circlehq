@@ -1,6 +1,7 @@
 package server
 
 import (
+	"embed"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -74,3 +75,17 @@ func (chqs *CircleHQService) DashboardPage(w http.ResponseWriter, r *http.Reques
 // google spreadsheet
 // (GET /reservation)
 func (chqs *CircleHQService) SpreadsheetPage(w http.ResponseWriter, r *http.Request) {}
+
+// static files
+//
+//go:embed static/*
+var embeddedStaticFS embed.FS
+
+// (GET /static/*)
+func (chqs *CircleHQService) StaticFiles(w http.ResponseWriter, r *http.Request) {
+	httpFS := http.FS(embeddedStaticFS)
+	fs := http.FileServer(httpFS)
+	// handler := http.StripPrefix("/static/", fs)
+	handler := fs
+	handler.ServeHTTP(w, r)
+}

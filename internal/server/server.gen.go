@@ -27,6 +27,9 @@ type ServerInterface interface {
 	// google spreadsheet
 	// (GET /reservation)
 	SpreadsheetPage(w http.ResponseWriter, r *http.Request)
+	// static files
+	// (GET /static/*)
+	StaticFiles(w http.ResponseWriter, r *http.Request)
 	// Receive Square webhook events
 	// (POST /webhooks/square)
 	SquareRequest(w http.ResponseWriter, r *http.Request)
@@ -63,6 +66,12 @@ func (_ Unimplemented) HealthCheck(w http.ResponseWriter, r *http.Request) {
 // google spreadsheet
 // (GET /reservation)
 func (_ Unimplemented) SpreadsheetPage(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// static files
+// (GET /static/*)
+func (_ Unimplemented) StaticFiles(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -142,6 +151,20 @@ func (siw *ServerInterfaceWrapper) SpreadsheetPage(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SpreadsheetPage(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StaticFiles operation middleware
+func (siw *ServerInterfaceWrapper) StaticFiles(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StaticFiles(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -292,6 +315,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/reservation", wrapper.SpreadsheetPage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/static/*", wrapper.StaticFiles)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/webhooks/square", wrapper.SquareRequest)

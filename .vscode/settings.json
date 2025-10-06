@@ -1,3 +1,10 @@
 {
-    "workbench.colorTheme": "Default Dark+"
+    "workbench.colorTheme": "Default Dark+",
+    "go": {
+        "toolsEnvVars": {
+            "GOARCH": "wasm",
+            "GOOS": "js"
+        },
+        "installDependenciesWhenBuilding": false
+    }
 }

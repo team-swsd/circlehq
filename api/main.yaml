@@ -6,6 +6,14 @@ servers:
   - url: "http://circlehq.swsd.net"
 security: []
 paths:
+  /static/*:
+    get:
+      summary: static files
+      operationId: staticFiles
+      responses:
+        '200':
+          description: OK
+
   /webhooks/square:
     post:
       summary: Receive Square webhook events
