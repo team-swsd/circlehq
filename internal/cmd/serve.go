@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	squareclient "github.com/square/square-go-sdk/client"
 	"github.com/square/square-go-sdk/option"
+	"github.com/team-swsd/circlehq/internal/broadcast"
 	"github.com/team-swsd/circlehq/internal/catalog"
 	"github.com/team-swsd/circlehq/internal/core"
 	"github.com/team-swsd/circlehq/internal/discord"
@@ -87,7 +88,10 @@ func runServe(opts *ServeCmdOptions) error {
 	logger.Info("catalog initialized", "items_count", len(catalog.Items))
 	logger.Info("catalog items", "items", catalog.Items)
 
-	circleHQCore := core.NewCore(logger, catalog, discordClient, squareClient)
+	broadcaster := broadcast.NewBroadcaster(logger)
+	go broadcaster.Run()
+
+	circleHQCore := core.NewCore(logger, catalog, discordClient, squareClient, broadcaster)
 	circleHQService := server.NewCircleHQService(logger, circleHQCore, signatureKey)
 	routerOpts := server.DefaultRouterOptions(server.RouterOptions{Logger: logger})
 	handler := server.HandlerWithOptions(circleHQService, routerOpts)

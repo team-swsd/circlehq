@@ -7,8 +7,8 @@ import (
 	"time"
 
 	squareclient "github.com/square/square-go-sdk/client"
+	"github.com/team-swsd/circlehq/internal/broadcast"
 	"github.com/team-swsd/circlehq/internal/catalog"
-	"github.com/team-swsd/circlehq/internal/model"
 	"github.com/team-swsd/circlehq/internal/renderer"
 )
 
@@ -22,6 +22,7 @@ type Core struct {
 	discordClient    DiscordClientInterface
 	squareClient     *squareclient.Client
 	templateRenderer renderer.TemplateRenderer
+	broadcaster      *broadcast.Broadcaster
 }
 
 var _ CoreInterface = (*Core)(nil)
@@ -31,18 +32,16 @@ type CoreInterface interface {
 	// サーバーレイヤーはHTTPリクエストのボディをそのまま渡すだけで良いように、ペイロードは[]byteで受け取るのがシンプルです。
 	HandleInventoryUpdateWebhook(ctx context.Context, payload []byte) error
 
-	// GetDashboardData はダッシュボード表示用の現在の在庫状況サマリーを取得します。
-	// 戻り値は、JSONにシリアライズしやすいように、別途定義した構造体（例: model.Dashboard）が望ましいです。
-	GetDashboardData(ctx context.Context) (*model.Dashboard, error)
-
 	RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error
+
+	Broadcaster() *broadcast.Broadcaster // このメソッドを追加
 }
 
 type DiscordClientInterface interface {
 	Post(ctx context.Context, content string) error
 }
 
-func NewCore(logger *slog.Logger, catalog *catalog.Catalog, discordClient DiscordClientInterface, squareClient *squareclient.Client) *Core {
+func NewCore(logger *slog.Logger, catalog *catalog.Catalog, discordClient DiscordClientInterface, squareClient *squareclient.Client, broadcaster *broadcast.Broadcaster) *Core {
 	renderer := renderer.NewHTMLTemplateRenderer()
 	return &Core{
 		logger:           logger,
@@ -50,7 +49,14 @@ func NewCore(logger *slog.Logger, catalog *catalog.Catalog, discordClient Discor
 		discordClient:    discordClient,
 		squareClient:     squareClient,
 		templateRenderer: renderer,
+		broadcaster:      broadcaster,
 	}
+}
+
+// Broadcaster は core が保持する broadcaster インスタンスを返します。
+// このメソッドを実装
+func (c *Core) Broadcaster() *broadcast.Broadcaster {
+	return c.broadcaster
 }
 
 func init() {

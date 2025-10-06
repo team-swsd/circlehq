@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/team-swsd/circlehq/internal/catalog"
 	"github.com/team-swsd/circlehq/internal/model"
@@ -36,14 +37,29 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 	}
 
 	// 3. Discordクライアントを使って通知する
-	content := c.CreatePostContentText(payload.Data.Object.InventoryCounts)
-	if err := c.discordClient.Post(ctx, content); err != nil {
-		return err
-	}
+	// content := c.CreatePostContentText(payload.Data.Object.InventoryCounts)
+	// if err := c.discordClient.Post(ctx, content); err != nil {
+	// 	return err
+	// }
+	// fmt.Println(content)
 
 	// 4. SSEブロードキャスターを使って通知する
+	dashboardData := map[string]interface{}{
+		"type":      "webhook_received",
+		"timestamp": time.Now().Unix(),
+		"payload":   c.catalog,
+	}
 
-	fmt.Println(content)
+	jsonData, err := json.Marshal(dashboardData)
+	if err != nil {
+		c.logger.Error("Failed to marshal dashboard data", "error", err)
+		// ブロードキャストは失敗するが、Webhook処理自体は続行するかもしれないのでreturnしない
+	} else {
+		// ★★★ ここでBroadcasterにJSONデータを渡す ★★★
+		c.logger.Info("Broadcasting webhook data to dashboard clients")
+		c.broadcaster.Broadcast(jsonData)
+	}
+
 	c.logger.InfoContext(ctx, "Inventory Updated", "catalog", c.catalog)
 	return nil
 }

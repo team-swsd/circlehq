@@ -1,7 +1,8 @@
 package model
 
 type Dashboard struct {
-	Items []DashboardItem `json:"items"`
+	Items     []DashboardItem `json:"items"`
+	UpdatedAt string          `json:"updated_at"`
 }
 type DashboardItem struct {
 	Name       string      `json:"name"`

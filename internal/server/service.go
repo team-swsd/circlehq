@@ -56,10 +56,6 @@ func (chqs *CircleHQService) HealthCheck(w http.ResponseWriter, r *http.Request)
 // (GET /)
 func (chqs *CircleHQService) IndexPage(w http.ResponseWriter, r *http.Request) {}
 
-// dashboard api
-// (GET /api/dashboard-sse)
-func (chqs *CircleHQService) GetDashboardData(w http.ResponseWriter, r *http.Request) {}
-
 // dashboard
 // (GET /dashboard)
 func (chqs *CircleHQService) DashboardPage(w http.ResponseWriter, r *http.Request) {

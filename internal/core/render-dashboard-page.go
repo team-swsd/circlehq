@@ -14,7 +14,9 @@ import (
 func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error {
 	c.logger.InfoContext(ctx, "RenderDashboardPage")
 
-	dashboardData := model.Dashboard{}
+	dashboardData := model.Dashboard{
+		UpdatedAt: c.catalog.UpdatedAt,
+	}
 	for _, item := range c.catalog.Items {
 		itemData := model.DashboardItem{
 			Name: item.Name,
@@ -27,6 +29,7 @@ func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) e
 				SKU:      variation.SKU,
 				Price:    variation.Price,
 				Sellable: variation.Sellable,
+				Quantity: variation.Quantity,
 			})
 			// 在庫情報を取得
 			quantity, err := c.getQuantity(variation.ID)

@@ -4,13 +4,19 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	squaregosdk "github.com/square/square-go-sdk"
 	squareclient "github.com/square/square-go-sdk/client"
 )
 
+var (
+	jst *time.Location
+)
+
 type Catalog struct {
-	Items []CatalogItem `json:"items"`
+	Items     []CatalogItem `json:"items"`
+	UpdatedAt string        `json:"updated_at"`
 }
 
 type CatalogItem struct {
@@ -28,6 +34,10 @@ type Variation struct {
 	Quantity int    `json:"quantity"`
 }
 
+func init() {
+	jst, _ = time.LoadLocation("Asia/Tokyo")
+}
+
 func NewCatalog(client *squareclient.Client) (*Catalog, error) {
 	catalog, err := getCatalogList(client)
 	if err != nil {
@@ -43,6 +53,9 @@ func NewCatalog(client *squareclient.Client) (*Catalog, error) {
 			catalog.Items[i].Variations[j].Quantity = quantity
 		}
 	}
+
+	// UpdatedAt更新
+	catalog.UpdatedAt = time.Now().In(jst).Format("2006-01-02 15:04:05")
 	return catalog, nil
 }
 
@@ -112,6 +125,9 @@ func (c *Catalog) GetInitialQuantity(client *squareclient.Client, variationID st
 // UpdateQuantityByVariationID は、指定されたvariationIDを持つVariationのQuantityを更新
 // レシーバーをポインタ型 (*Catalog) にすることで、メソッド内での変更が呼び出し元のオブジェクトに反映
 func (c *Catalog) UpdateQuantityByVariationID(variationID string, quantity int) error {
+	// UpdatedAt更新
+	c.UpdatedAt = time.Now().In(jst).Format("2006-01-02 15:04:05")
+
 	// Catalogが持つすべてのItemをループ
 	for i := range c.Items {
 		// 各Itemが持つすべてのVariationをループ
@@ -125,6 +141,8 @@ func (c *Catalog) UpdateQuantityByVariationID(variationID string, quantity int) 
 			}
 		}
 	}
+
+	// 最後までループしても見つからなかった場合、エラーを返す)
 	return nil
 }
 

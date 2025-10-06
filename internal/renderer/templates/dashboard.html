@@ -31,7 +31,8 @@
 <body>
   <h1>Dashboard</h1>
   <div class="meta">
-    アイテム数: {{ len .Items }}
+    アイテム数: {{ len .Items }}<br>
+    最終更新日時: {{ .UpdatedAt }}
   </div>
 
   {{ if not .Items }}
