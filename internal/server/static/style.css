@@ -1,0 +1,91 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* スクロールバーを非表示に */
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0; /* ヘッダーが縮まないようにする */
+}
+
+.tabs {
+    display: flex;
+    gap: 4px; /* タブ間の隙間 */
+}
+
+.tab-button {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background-color: #e9ecef;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.tab-button.active {
+    background-color: #ffffff;
+    border-bottom: 1px solid #ffffff;
+    font-weight: bold;
+}
+
+#tab-reload-button {
+    padding: 8px 12px;
+    border: none;
+    background-color: #0d6efd;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.content-area {
+    flex-grow: 1; /* 残りの高さいっぱいに広げる */
+    display: flex;
+    background-color: #f1f1f1;
+}
+
+.content-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* --- モード別スタイル --- */
+
+/* ▼ タブモードのスタイル */
+.tab-mode .tabs {
+    display: flex; /* タブを表示 */
+}
+.tab-mode .content-frame {
+    display: none; /* 全てのiframeを一旦非表示 */
+}
+.tab-mode .content-frame.active {
+    display: block; /* activeなiframeのみ表示 */
+}
+
+/* ▼ 分割モードのスタイル */
+.split-mode .tabs {
+    display: none; /* タブを非表示 */
+}
+.split-mode .content-area {
+    flex-direction: row; /* iframeを横並びにする */
+}
+.split-mode .content-frame {
+    display: block !important; /* 両方のiframeを強制的に表示 */
+    width: 50%;
+    height: 100%;
+}
+/* iframeの間に区切り線を追加 */
+.split-mode #dashboard-frame {
+    border-right: 2px solid #ccc;
+}

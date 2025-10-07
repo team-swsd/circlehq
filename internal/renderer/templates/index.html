@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircleHQ alpha</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="tab-mode">
+
+    <header class="app-header">
+        <nav class="tabs">
+            <button class="tab-button active" data-target="dashboard">ダッシュボード</button>
+            <button class="tab-button" data-target="management">取置管理</button>
+        </nav>
+        <button id="tab-reload-button">タブリロード</button>
+    </header>
+
+    <main id="content-area" class="content-area">
+        <iframe id="dashboard-frame" class="content-frame active" src="dashboard" title="ダッシュボード"></iframe>
+        <iframe id="management-frame" class="content-frame" src="{{.SpreadSheetURL}}" title="取置管理"></iframe>
+    </main>
+
+    <script src="static/script.js"></script>
+</body>
+</html>

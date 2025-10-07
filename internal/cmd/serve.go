@@ -87,7 +87,7 @@ func runServe(opts *ServeCmdOptions) error {
 	go broadcaster.Run()
 
 	circleHQCore := core.NewCore(logger, catalog, discordClient, squareClient, broadcaster)
-	circleHQService := server.NewCircleHQService(logger, circleHQCore, configs.Square.SignatureKey)
+	circleHQService := server.NewCircleHQService(logger, circleHQCore, configs.Square.SignatureKey, configs.Spreadsheet.GoogleSpreadsheetURL)
 	routerOpts := server.DefaultRouterOptions(server.RouterOptions{Logger: logger})
 	handler := server.HandlerWithOptions(circleHQService, routerOpts)
 	addr := net.JoinHostPort(configs.Server.ListenAddress, configs.Server.ListenPort)

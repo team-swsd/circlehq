@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/team-swsd/circlehq/internal/core"
 )
@@ -17,31 +16,25 @@ type SSEClient chan []byte
 
 // CircleHQService is a CircleHQ application service
 type CircleHQService struct {
-	logger       *slog.Logger
-	core         core.CoreInterface
-	signatureKey string
-
-	// muはsseClientsマップを複数のゴルーチンから安全にアクセスするために使用します。
-	mu sync.Mutex
-	// sseClientsは、接続している全てのSSEクライアントのチャネルを保持します。
-	sseClients map[SSEClient]bool
+	logger         *slog.Logger
+	core           core.CoreInterface
+	signatureKey   string
+	spreadSheetURL string
 }
 
 var _ ServerInterface = (*CircleHQService)(nil)
 
 var (
-	jst *time.Location
-	mu  sync.Mutex // Square Webhook用
+	mu sync.Mutex // Square Webhook用
 )
 
 // NewCircleHQService creates new CircleHQ service
-func NewCircleHQService(logger *slog.Logger, core core.CoreInterface, signatureKey string) *CircleHQService {
-	jst, _ = time.LoadLocation("Asia/Tokyo")
+func NewCircleHQService(logger *slog.Logger, core core.CoreInterface, signatureKey string, spreadSheetURL string) *CircleHQService {
 	return &CircleHQService{
-		logger:       logger,
-		core:         core,
-		signatureKey: signatureKey,
-		sseClients:   make(map[SSEClient]bool),
+		logger:         logger,
+		core:           core,
+		signatureKey:   signatureKey,
+		spreadSheetURL: spreadSheetURL,
 	}
 }
 
@@ -55,7 +48,18 @@ func (chqs *CircleHQService) HealthCheck(w http.ResponseWriter, r *http.Request)
 
 // index
 // (GET /)
-func (chqs *CircleHQService) IndexPage(w http.ResponseWriter, r *http.Request) {}
+func (chqs *CircleHQService) IndexPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	chqs.logger.InfoContext(ctx, "IndexPage")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := chqs.core.RenderIndexPage(ctx, w, chqs.spreadSheetURL); err != nil {
+		chqs.logger.ErrorContext(ctx, "Failed to render index page", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	// Successfully rendered the page
+	chqs.logger.InfoContext(ctx, "Index page rendered successfully")
+}
 
 // dashboard
 // (GET /dashboard)

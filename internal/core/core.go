@@ -33,6 +33,7 @@ type CoreInterface interface {
 	HandleInventoryUpdateWebhook(ctx context.Context, payload []byte) error
 
 	RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error
+	RenderIndexPage(ctx context.Context, w http.ResponseWriter, spreadSheetURL string) error
 
 	Broadcaster() *broadcast.Broadcaster // このメソッドを追加
 }

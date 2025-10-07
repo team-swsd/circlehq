@@ -17,6 +17,7 @@ var tmplFS embed.FS
 // templateRenderer is an interface for rendering templates.
 type TemplateRenderer interface {
 	RenderDashboardPage(ctx context.Context, w http.ResponseWriter, content model.Dashboard) error
+	RenderIndexPage(ctx context.Context, w http.ResponseWriter, spreadSheetURL string) error
 }
 
 // Example implementation of TemplateRenderer
@@ -32,6 +33,23 @@ func (r *HTMLTemplateRenderer) RenderDashboardPage(ctx context.Context, w http.R
 		return fmt.Errorf("failed to parse template: %w", err)
 	}
 	if err := tmpl.Execute(w, content); err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
+	return err
+}
+
+func (r *HTMLTemplateRenderer) RenderIndexPage(ctx context.Context, w http.ResponseWriter, spreadSheetURL string) error {
+	tmpl := template.New("index.html")
+	tmpl, err := tmpl.ParseFS(tmplFS, "templates/index.html")
+	if err != nil {
+		return fmt.Errorf("failed to parse template: %w", err)
+	}
+	data := struct {
+		SpreadSheetURL string
+	}{
+		SpreadSheetURL: spreadSheetURL,
+	}
+	if err := tmpl.Execute(w, data); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
 	return err
