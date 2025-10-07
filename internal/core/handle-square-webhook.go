@@ -37,10 +37,10 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 	}
 
 	// 3. Discordクライアントを使って通知する
-	// content := c.CreatePostContentText(payload.Data.Object.InventoryCounts)
-	// if err := c.discordClient.Post(ctx, content); err != nil {
-	// 	return err
-	// }
+	content := c.CreatePostContentText(payload.Data.Object.InventoryCounts)
+	if err := c.discordClient.Post(ctx, content); err != nil {
+		return err
+	}
 	// fmt.Println(content)
 
 	// 4. SSEブロードキャスターを使って通知する

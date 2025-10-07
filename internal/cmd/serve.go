@@ -12,6 +12,7 @@ import (
 	"github.com/square/square-go-sdk/option"
 	"github.com/team-swsd/circlehq/internal/broadcast"
 	"github.com/team-swsd/circlehq/internal/catalog"
+	"github.com/team-swsd/circlehq/internal/config"
 	"github.com/team-swsd/circlehq/internal/core"
 	"github.com/team-swsd/circlehq/internal/discord"
 	"github.com/team-swsd/circlehq/internal/log"
@@ -19,11 +20,9 @@ import (
 )
 
 type ServeCmdOptions struct {
-	Port string
-
-	Debug   bool
-	Address string
-	NoAuth  bool
+	Debug      bool
+	NoAuth     bool
+	configPath string
 }
 
 var (
@@ -51,18 +50,12 @@ func NewServeCmd() *cobra.Command {
 	}
 
 	flags := c.Flags()
-	flags.StringVar(&opts.Port, "port", "8000", "Port number for the rest server listening")
+	flags.StringVarP(&opts.configPath, "config", "c", "", "config file path")
 	flags.BoolVar(&opts.Debug, "debug", false, "Debug server mode")
 	flags.BoolVar(&opts.NoAuth, "noauth", false, "bypass basic auth")
 
 	return c
 }
-
-const (
-	squareBaseURL     = "https://connect.squareupsandbox.com/"
-	squareAccessToken = "EAAAl0L-AOHAQiNLA1UZvKXg0cjPYbp5jN_Wri_vK0wiF7XcA3as-QHCZACo5sdU"
-	signatureKey      = "iOHasX0A3t7sQWmjnTozBw"
-)
 
 func runServe(opts *ServeCmdOptions) error {
 	var logger *slog.Logger
@@ -72,11 +65,13 @@ func runServe(opts *ServeCmdOptions) error {
 		logger = log.NewLogger(os.Stdout, nil, slog.LevelInfo)
 	}
 
-	discordClient := discord.NewDiscordClient(logger, "webhook_url", 5*time.Second, "username", "avatar_url")
+	configs, err := config.LoadConfig(opts.configPath)
+
+	discordClient := discord.NewDiscordClient(logger, configs.Discord.WebhookURL, 5*time.Second, configs.Discord.Username, configs.Discord.AvatarURL)
 
 	squareClient := squareclient.NewClient(
-		option.WithToken(squareAccessToken),
-		option.WithBaseURL(squareBaseURL),
+		option.WithToken(configs.Square.AccessToken),
+		option.WithBaseURL(configs.Square.BaseURL),
 	)
 
 	// Initialize the catalog
@@ -92,10 +87,12 @@ func runServe(opts *ServeCmdOptions) error {
 	go broadcaster.Run()
 
 	circleHQCore := core.NewCore(logger, catalog, discordClient, squareClient, broadcaster)
-	circleHQService := server.NewCircleHQService(logger, circleHQCore, signatureKey)
+	circleHQService := server.NewCircleHQService(logger, circleHQCore, configs.Square.SignatureKey)
 	routerOpts := server.DefaultRouterOptions(server.RouterOptions{Logger: logger})
 	handler := server.HandlerWithOptions(circleHQService, routerOpts)
-	addr := net.JoinHostPort("", opts.Port)
+	addr := net.JoinHostPort(configs.Server.ListenAddress, configs.Server.ListenPort)
 
+	logger.Info("Initialized!")
+	logger.Info("start server", "address", addr)
 	return server.NewHTTPServer(handler, addr, defaultShutdownSignal, defaultShutdownWaitTime, logger)
 }

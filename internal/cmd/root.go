@@ -9,5 +9,6 @@ func NewCircleHQCmd(version string) *cobra.Command {
 		Short:   "Circle HQ",
 	}
 	c.AddCommand(NewServeCmd())
+	c.AddCommand(NewConfgenCmd())
 	return c
 }
