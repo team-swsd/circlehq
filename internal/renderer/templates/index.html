@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CircleHQ alpha</title>
-    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.register('/static/service-worker.js')
+        }
+    </script>
 </head>
+
 <body class="tab-mode">
 
     <header class="app-header">
@@ -21,6 +29,19 @@
         <iframe id="management-frame" class="content-frame" src="{{.SpreadSheetURL}}" title="取置管理"></iframe>
     </main>
 
-    <script src="static/script.js"></script>
+    <script src="/static/wasm_exec.js"></script>
+    <script>
+        if (!WebAssembly.instantiateStreaming) {
+            WebAssembly.instantiateStreaming = async (resp, importObject) => {
+                const source = await (await resp).arrayBuffer();
+                return await WebAssembly.instantiate(source, importObject);
+            };
+        }
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("/static/index.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+    </script>
 </body>
+
 </html>

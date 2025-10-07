@@ -160,7 +160,7 @@
     }
 
     const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("/static/main.wasm"), go.importObject)
+    WebAssembly.instantiateStreaming(fetch("/static/dashboard.wasm"), go.importObject)
       .then((result) => {
         // WASMモジュールを実行
         go.run(result.instance);

@@ -1,40 +1,83 @@
-# --- Variables ---
-WASM_OUTPUT := internal/server/static/main.wasm
-WASM_SOURCE := ./wasm/main.go
-BINARY_OUTPUT := bin/circlehq
-CMD_PATH := cmd/circlehq/main.go
-PORT := 35080
+# ==============================================================================
+# Variables
+# ==============================================================================
 
-# Phony targets are targets that do not produce an output file.
-.PHONY: all build run clean
+# Go commands
+GO := go
+GOBUILD := $(GO) build
+GORUN := $(GO) run
 
-# Default target executed when you just run `make`
+# Source and Target files for WebAssembly
+WASM_INDEX_SRC := wasm/index/main.go
+WASM_INDEX_TARGET := internal/server/static/index.wasm
+
+WASM_DASHBOARD_SRC := wasm/dashboard/main.go
+WASM_DASHBOARD_TARGET := internal/server/static/dashboard.wasm
+
+# Main application sources and binary target
+MAIN_APP_SRC_DIR := cmd/circlehq
+MAIN_APP_GO_FILES := $(wildcard $(MAIN_APP_SRC_DIR)/*.go)
+MAIN_APP_TARGET := bin/circlehq
+
+# Configuration file for the server
+CONFIG_FILE := ./config.toml
+
+# ==============================================================================
+# Phony Targets (Targets that are not files)
+# ==============================================================================
+
+.PHONY: all run build wasm clean
+
+# Default target when 'make' is run without arguments
 all: build
 
-# Build both WASM and the server binary
-build: $(BINARY_OUTPUT)
+# ==============================================================================
+# Main Targets
+# ==============================================================================
 
-# Rule to build the server binary. It depends on the WASM file.
-$(BINARY_OUTPUT): $(WASM_OUTPUT) $(CMD_PATH)
-	@echo "==> Building server binary..."
-	@mkdir -p $(dir $(BINARY_OUTPUT))
-	go build -o $(BINARY_OUTPUT) $(CMD_PATH)
-	@echo "==> Build complete: $(BINARY_OUTPUT)"
+# Target: run
+# Builds WASM files only if their sources have changed, then runs the server.
+run: $(WASM_INDEX_TARGET) $(WASM_DASHBOARD_TARGET)
+	@echo "==> Running server..."
+	$(GORUN) $(MAIN_APP_SRC_DIR)/main.go serve -c $(CONFIG_FILE)
 
-# Run the server (ensures WASM is built first)
-run: $(WASM_OUTPUT)
-	@echo "==> Running server on port $(PORT)..."
-	go run $(CMD_PATH) serve --port $(PORT)
+# Target: build
+# Builds all WASM files and the main application binary.
+build: wasm $(MAIN_APP_TARGET)
+	@echo "==> Build complete."
 
-# Rule to build the WASM file.
-# This rule is triggered if wasm/main.go is newer than the existing main.wasm
-$(WASM_OUTPUT): $(WASM_SOURCE)
-	@echo "==> Building WebAssembly binary..."
-	@mkdir -p $(dir $@)
-	GOOS=js GOARCH=wasm go build -o $@ $<
+# Helper target to build all WASM files
+wasm: $(WASM_INDEX_TARGET) $(WASM_DASHBOARD_TARGET)
 
-# Clean up build artifacts
+# ==============================================================================
+# Build Rules
+# ==============================================================================
+
+# Rule to build the index WASM file.
+# This command runs only if wasm/index/main.go is newer than the target WASM file.
+$(WASM_INDEX_TARGET): $(WASM_INDEX_SRC)
+	@echo "==> Building index WASM..."
+	GOOS=js GOARCH=wasm $(GOBUILD) -o $@ $<
+
+# Rule to build the dashboard WASM file.
+# This command runs only if wasm/dashboard/main.go is newer than the target WASM file.
+$(WASM_DASHBOARD_TARGET): $(WASM_DASHBOARD_SRC)
+	@echo "==> Building dashboard WASM..."
+	GOOS=js GOARCH=wasm $(GOBUILD) -o $@ $<
+
+# Rule to build the main application binary.
+$(MAIN_APP_TARGET): $(MAIN_APP_GO_FILES)
+	@echo "==> Building main application binary..."
+	@mkdir -p $(@D)
+	$(GOBUILD) -o $@ $(MAIN_APP_SRC_DIR)/main.go
+
+# ==============================================================================
+# Utility Targets
+# ==============================================================================
+
+# Target: clean
+# Removes all generated files.
 clean:
-	@echo "==> Cleaning up..."
-	@rm -f $(WASM_OUTPUT)
-	@rm -rf bin
+	@echo "==> Cleaning up built artifacts..."
+	@rm -f $(WASM_INDEX_TARGET) $(WASM_DASHBOARD_TARGET) $(MAIN_APP_TARGET)
+	@rmdir bin 2>/dev/null || true
