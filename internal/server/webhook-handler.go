@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -52,8 +51,6 @@ const (
 func isFromSquare(signatureKey string, reqSignature string, body []byte) bool {
 	client := squareclient.NewClient()
 
-	fmt.Println(signatureKey, reqSignature)
-
 	err := client.Webhooks.VerifySignature(
 		context.TODO(),
 		&square.VerifySignatureRequest{
@@ -63,6 +60,5 @@ func isFromSquare(signatureKey string, reqSignature string, body []byte) bool {
 			NotificationURL: NOTIFICATION_URL,
 		},
 	)
-	fmt.Println(err)
 	return err == nil
 }

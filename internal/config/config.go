@@ -70,7 +70,7 @@ func LoadConfig(configPath string) (Config, error) {
 	fmt.Println("--- 設定の読み込みが完了しました ---")
 	fmt.Printf("Square Base URL: %s\n", config.Square.BaseURL)
 	fmt.Printf("Discord Webhook URL: %s\n", config.Discord.WebhookURL)
-	fmt.Printf("Server Listen Address: %s:%d\n", config.Server.ListenAddress, config.Server.ListenPort)
+	fmt.Printf("Server Listen Address: %s:%s\n", config.Server.ListenAddress, config.Server.ListenPort)
 	fmt.Printf("Spreadsheet URL: %s\n", config.Spreadsheet.GoogleSpreadsheetURL)
 	return config, nil
 }

@@ -66,6 +66,10 @@ func runServe(opts *ServeCmdOptions) error {
 	}
 
 	configs, err := config.LoadConfig(opts.configPath)
+	if err != nil {
+		logger.Error("failed to load config", "error", err)
+		return err
+	}
 
 	discordClient := discord.NewDiscordClient(logger, configs.Discord.WebhookURL, 5*time.Second, configs.Discord.Username, configs.Discord.AvatarURL)
 
@@ -75,7 +79,7 @@ func runServe(opts *ServeCmdOptions) error {
 	)
 
 	// Initialize the catalog
-	catalog, err := catalog.NewCatalog(squareClient)
+	catalog, err := catalog.NewCatalog(logger, squareClient)
 	if err != nil {
 		logger.Error("failed to initialize catalog", "error", err)
 		return err

@@ -14,10 +14,12 @@ import (
 func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error {
 	c.logger.InfoContext(ctx, "RenderDashboardPage")
 
+	// カタログはWebhookで更新され得るので、ロック下のスナップショットを読む
+	updatedAt, items := c.catalog.Snapshot()
 	dashboardData := model.Dashboard{
-		UpdatedAt: c.catalog.UpdatedAt,
+		UpdatedAt: updatedAt,
 	}
-	for _, item := range c.catalog.Items {
+	for _, item := range items {
 		itemData := model.DashboardItem{
 			Name: item.Name,
 			ID:   item.ID,
@@ -41,7 +43,6 @@ func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) e
 		}
 		dashboardData.Items = append(dashboardData.Items, itemData)
 	}
-	fmt.Println(dashboardData)
 
 	// レンダラ
 	if err := c.templateRenderer.RenderDashboardPage(ctx, w, dashboardData); err != nil {
@@ -71,7 +72,6 @@ func (c *Core) getQuantity(itemID string) (int, error) {
 	quantityStr := item.GetQuantity()
 	quantity, err := strconv.Atoi(*quantityStr)
 	if err != nil {
-		fmt.Println("Error parsing quantity:", err)
 		return 0, fmt.Errorf("invalid quantity for item %s: %w", itemID, err)
 	}
 

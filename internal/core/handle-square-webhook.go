@@ -17,7 +17,7 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 	// 1. payload ([]byte) をSquareのWebhook構造体にUnmarshalする
 	var payload model.InventoryCountUpdatedWebhook
 	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
-		return fmt.Errorf("error unmarshal")
+		return fmt.Errorf("failed to unmarshal webhook payload: %w", err)
 	}
 	if payload.Type != "inventory.count.updated" {
 		// ignore
@@ -25,14 +25,20 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 	}
 
 	// 2. catalogを更新
+	// 1件の異常データでWebhook全体を落とすと通知も止まってしまうため、
+	// パース不能・カタログ未登録のバリエーションはログを残してスキップする。
 	for _, v := range payload.Data.Object.InventoryCounts {
 		// quantity string to int
 		quantity, err := strconv.Atoi(v.Quantity)
 		if err != nil {
-			return err
+			c.logger.WarnContext(ctx, "failed to parse inventory quantity; skipping",
+				"variation_id", v.CatalogObjectID, "quantity", v.Quantity, "error", err)
+			continue
 		}
 		if err := c.catalog.UpdateQuantityByVariationID(v.CatalogObjectID, quantity); err != nil {
-			return err
+			c.logger.WarnContext(ctx, "inventory update for unknown variation; skipping",
+				"variation_id", v.CatalogObjectID, "error", err)
+			continue
 		}
 	}
 
@@ -41,7 +47,6 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 	if err := c.discordClient.Post(ctx, content); err != nil {
 		return err
 	}
-	// fmt.Println(content)
 
 	// 4. SSEブロードキャスターを使って通知する
 	dashboardData := map[string]interface{}{
