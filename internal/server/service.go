@@ -76,6 +76,20 @@ func (chqs *CircleHQService) DashboardPage(w http.ResponseWriter, r *http.Reques
 	chqs.logger.InfoContext(ctx, "Dashboard page rendered successfully")
 }
 
+// Manually reconcile inventory from Square
+// (POST /api/reconcile)
+func (chqs *CircleHQService) ReconcileInventory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	chqs.logger.InfoContext(ctx, "ReconcileInventory")
+	if err := chqs.core.ReconcileInventory(ctx); err != nil {
+		chqs.logger.ErrorContext(ctx, "Failed to reconcile inventory", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	chqs.logger.InfoContext(ctx, "Inventory reconciled successfully")
+}
+
 // google spreadsheet
 // (GET /reservation)
 func (chqs *CircleHQService) SpreadsheetPage(w http.ResponseWriter, r *http.Request) {}

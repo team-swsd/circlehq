@@ -1,5 +1,5 @@
 {
-    "workbench.colorTheme": "Default Dark+",
+    "workbench.colorTheme": "Dark+",
     "go": {
         "toolsEnvVars": {
             "GOARCH": "wasm",

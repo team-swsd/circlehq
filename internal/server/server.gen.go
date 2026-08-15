@@ -18,6 +18,9 @@ type ServerInterface interface {
 	// dashboard api
 	// (GET /api/dashboard-sse)
 	GetDashboardData(w http.ResponseWriter, r *http.Request)
+	// Manually reconcile inventory from Square
+	// (POST /api/reconcile)
+	ReconcileInventory(w http.ResponseWriter, r *http.Request)
 	// dashboard
 	// (GET /dashboard)
 	DashboardPage(w http.ResponseWriter, r *http.Request)
@@ -48,6 +51,12 @@ func (_ Unimplemented) IndexPage(w http.ResponseWriter, r *http.Request) {
 // dashboard api
 // (GET /api/dashboard-sse)
 func (_ Unimplemented) GetDashboardData(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Manually reconcile inventory from Square
+// (POST /api/reconcile)
+func (_ Unimplemented) ReconcileInventory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -109,6 +118,20 @@ func (siw *ServerInterfaceWrapper) GetDashboardData(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDashboardData(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReconcileInventory operation middleware
+func (siw *ServerInterfaceWrapper) ReconcileInventory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReconcileInventory(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -306,6 +329,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/dashboard-sse", wrapper.GetDashboardData)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/reconcile", wrapper.ReconcileInventory)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dashboard", wrapper.DashboardPage)

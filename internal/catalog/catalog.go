@@ -166,6 +166,67 @@ func (c *Catalog) GetInitialQuantity(client *squareclient.Client, variationID st
 	return quantity, nil
 }
 
+// RefreshQuantities はSquareから全バリエーションの在庫数(IN_STOCK)をバッチで取り直し、
+// キャッシュをロック下で上書きします。Webhookの取りこぼしで生じたズレを手動で補正する用途です。
+// 1件ずつのInventory.Getではなくbatch-retrieveを使い、1回（必要ならカーソル分）のリクエストで済ませます。
+func (c *Catalog) RefreshQuantities(ctx context.Context, client *squareclient.Client) error {
+	// 対象バリエーションIDを収集（読み取りロック）
+	c.mu.RLock()
+	ids := make([]string, 0)
+	for _, item := range c.Items {
+		for _, v := range item.Variations {
+			ids = append(ids, v.ID)
+		}
+	}
+	c.mu.RUnlock()
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	// バッチ取得（カーソルがある限り回す）してID→在庫数のマップを作る
+	quantities := make(map[string]int, len(ids))
+	var cursor *string
+	for {
+		req := &squaregosdk.BatchGetInventoryCountsRequest{
+			CatalogObjectIDs: ids,
+			States:           []squaregosdk.InventoryState{squaregosdk.InventoryStateInStock},
+			Cursor:           cursor,
+		}
+		resp, err := client.Inventory.BatchGetCounts(ctx, req)
+		if err != nil {
+			return fmt.Errorf("failed to batch get inventory counts: %w", err)
+		}
+		for _, cnt := range resp.Counts {
+			if cnt.CatalogObjectID == nil || cnt.Quantity == nil {
+				continue
+			}
+			q, err := strconv.Atoi(*cnt.Quantity)
+			if err != nil {
+				continue
+			}
+			quantities[*cnt.CatalogObjectID] = q
+		}
+		if resp.Cursor == nil || *resp.Cursor == "" {
+			break
+		}
+		cursor = resp.Cursor
+	}
+
+	// キャッシュへ反映（書き込みロック）
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i := range c.Items {
+		for j := range c.Items[i].Variations {
+			if q, ok := quantities[c.Items[i].Variations[j].ID]; ok {
+				c.Items[i].Variations[j].Quantity = q
+			}
+		}
+	}
+	c.UpdatedAt = time.Now().In(jst).Format("2006-01-02 15:04:05")
+	return nil
+}
+
 // UpdateQuantityByVariationID は、指定されたvariationIDを持つVariationのQuantityを更新
 // レシーバーをポインタ型 (*Catalog) にすることで、メソッド内での変更が呼び出し元のオブジェクトに反映
 func (c *Catalog) UpdateQuantityByVariationID(variationID string, quantity int) error {

@@ -41,6 +41,17 @@ func tabClickHandler(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
+// 在庫更新ボタンがクリックされたときに呼ばれるコールバック関数。
+// /api/reconcile をPOSTで叩いてSquareから在庫を取り直させる。
+// 成功するとサーバ側がSSEで最新カタログを配信するため、ダッシュボードは自動で更新される
+// （こちらからiframeをリロードする必要はない）。
+func reconcileClickHandler(this js.Value, args []js.Value) interface{} {
+	opts := js.Global().Get("Object").New()
+	opts.Set("method", "POST")
+	js.Global().Call("fetch", "/api/reconcile", opts)
+	return nil
+}
+
 // リロードボタンがクリックされたときに呼ばれるコールバック関数
 func reloadClickHandler(this js.Value, args []js.Value) interface{} {
 	// 現在アクティブなiframeを取得
@@ -67,6 +78,7 @@ func main() {
 	tabButtons = doc.Call("querySelectorAll", ".tab-button")
 	contentFrames = doc.Call("querySelectorAll", ".content-frame")
 	reloadButton := doc.Call("getElementById", "tab-reload-button")
+	reconcileButton := doc.Call("getElementById", "tab-reconcile-button")
 
 	// 各タブボタンにクリックイベントリスナーを登録
 	for i := 0; i < tabButtons.Length(); i++ {
@@ -76,6 +88,11 @@ func main() {
 
 	// リロードボタンにクリックイベントリスナーを登録
 	reloadButton.Call("addEventListener", "click", js.FuncOf(reloadClickHandler))
+
+	// 在庫更新ボタンにクリックイベントリスナーを登録
+	if !reconcileButton.IsNull() && !reconcileButton.IsUndefined() {
+		reconcileButton.Call("addEventListener", "click", js.FuncOf(reconcileClickHandler))
+	}
 
 	// 初期表示時に最初のタブをアクティブにする
 	if tabButtons.Length() > 0 {

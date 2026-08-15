@@ -2,15 +2,15 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strconv"
 
-	squaregosdk "github.com/square/square-go-sdk"
 	"github.com/team-swsd/circlehq/internal/model"
 )
 
 // RenderDashboardPage renders the dashboard page using the template renderer.
+// 在庫数は起動時取得＋Webhook差分で更新されるオンメモリキャッシュをそのまま使う。
+// ページを開くたびにSquare APIを叩くと負荷・レイテンシ・レート制限の面で不利なため、
+// 描画はキャッシュのスナップショットのみで行い、ズレの補正は手動リコンサイル(ReconcileInventory)に任せる。
 func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error {
 	c.logger.InfoContext(ctx, "RenderDashboardPage")
 
@@ -33,13 +33,6 @@ func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) e
 				Sellable: variation.Sellable,
 				Quantity: variation.Quantity,
 			})
-			// 在庫情報を取得
-			quantity, err := c.getQuantity(variation.ID)
-			if err != nil {
-				c.logger.ErrorContext(ctx, "Failed to get quantity for variation", "variation_id", variation.ID, "error", err)
-				continue // エラーがあっても処理を続ける
-			}
-			itemData.Variations[len(itemData.Variations)-1].Quantity = quantity
 		}
 		dashboardData.Items = append(dashboardData.Items, itemData)
 	}
@@ -50,34 +43,4 @@ func (c *Core) RenderDashboardPage(ctx context.Context, w http.ResponseWriter) e
 		return err
 	}
 	return nil
-}
-
-func (c *Core) getQuantity(itemID string) (int, error) {
-	// カタログからアイテムを取得
-	req := &squaregosdk.GetInventoryRequest{
-		CatalogObjectID: itemID,
-	}
-
-	response, err := c.squareClient.Inventory.Get(context.Background(), req)
-
-	if err != nil {
-		return 0, fmt.Errorf("failed to get inventory for item %s: %w", itemID, err)
-	}
-
-	if len(response.Results) == 0 {
-		return 0, fmt.Errorf("no inventory found for item %s", itemID)
-	}
-
-	item := response.Results[0]
-	quantityStr := item.GetQuantity()
-	quantity, err := strconv.Atoi(*quantityStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid quantity for item %s: %w", itemID, err)
-	}
-
-	if *item.GetCatalogObjectID() != itemID {
-		return 0, fmt.Errorf("item ID mismatch: expected %s, got %s", itemID, *item.GetCatalogObjectID())
-	}
-
-	return quantity, nil
 }

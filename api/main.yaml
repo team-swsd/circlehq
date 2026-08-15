@@ -45,6 +45,16 @@ paths:
                   $ref: '#/components/schemas/DashboardDataResponse'
         '400':
           description: Bad Request
+  /api/reconcile:
+    post:
+      summary: Manually reconcile inventory from Square
+      description: Re-fetches current inventory counts from Square, updates the in-memory cache, and pushes the result to dashboard clients via SSE.
+      operationId: ReconcileInventory
+      responses:
+        '200':
+          description: Reconciled successfully.
+        '500':
+          description: Internal server error.
   /dashboard:
     get:
       summary: dashboard

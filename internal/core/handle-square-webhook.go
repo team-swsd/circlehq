@@ -48,24 +48,39 @@ func (c *Core) HandleInventoryUpdateWebhook(ctx context.Context, bodyBytes []byt
 		return err
 	}
 
-	// 4. SSEブロードキャスターを使って通知する
+	// 4. SSEブロードキャスターを使って最新のカタログを配信する
+	c.broadcastCatalog(ctx, "webhook_received")
+
+	c.logger.InfoContext(ctx, "Inventory Updated", "catalog", c.catalog)
+	return nil
+}
+
+// broadcastCatalog は現在のカタログ状態をSSEで全ダッシュボードクライアントへ配信します。
+// Webhook受信時と手動リコンサイル時で共通に使います。
+// 配信に失敗しても呼び出し元の処理は続行できるよう、エラーはログのみで握ります。
+func (c *Core) broadcastCatalog(ctx context.Context, eventType string) {
 	dashboardData := map[string]interface{}{
-		"type":      "webhook_received",
+		"type":      eventType,
 		"timestamp": time.Now().Unix(),
 		"payload":   c.catalog,
 	}
 
 	jsonData, err := json.Marshal(dashboardData)
 	if err != nil {
-		c.logger.Error("Failed to marshal dashboard data", "error", err)
-		// ブロードキャストは失敗するが、Webhook処理自体は続行するかもしれないのでreturnしない
-	} else {
-		// ★★★ ここでBroadcasterにJSONデータを渡す ★★★
-		c.logger.Info("Broadcasting webhook data to dashboard clients")
-		c.broadcaster.Broadcast(jsonData)
+		c.logger.ErrorContext(ctx, "Failed to marshal dashboard data", "error", err)
+		return
 	}
+	c.logger.InfoContext(ctx, "Broadcasting catalog to dashboard clients", "event", eventType)
+	c.broadcaster.Broadcast(jsonData)
+}
 
-	c.logger.InfoContext(ctx, "Inventory Updated", "catalog", c.catalog)
+// ReconcileInventory はSquareから在庫数を取り直してキャッシュを補正し、
+// 最新状態をSSEでダッシュボードへ配信します。
+func (c *Core) ReconcileInventory(ctx context.Context) error {
+	if err := c.catalog.RefreshQuantities(ctx, c.squareClient); err != nil {
+		return err
+	}
+	c.broadcastCatalog(ctx, "reconciled")
 	return nil
 }
 

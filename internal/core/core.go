@@ -32,6 +32,10 @@ type CoreInterface interface {
 	// サーバーレイヤーはHTTPリクエストのボディをそのまま渡すだけで良いように、ペイロードは[]byteで受け取るのがシンプルです。
 	HandleInventoryUpdateWebhook(ctx context.Context, payload []byte) error
 
+	// ReconcileInventory はSquareから在庫数を取り直してキャッシュを補正し、
+	// 結果をSSEでダッシュボードへ反映します（手動更新用）。
+	ReconcileInventory(ctx context.Context) error
+
 	RenderDashboardPage(ctx context.Context, w http.ResponseWriter) error
 	RenderIndexPage(ctx context.Context, w http.ResponseWriter, spreadSheetURL string) error
 
