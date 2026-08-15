@@ -113,31 +113,54 @@ func getCatalogList(client *squareclient.Client) (*Catalog, error) {
 	}
 
 	for _, item := range response.Results {
+		itemObj := item.GetItem()
+		if itemObj == nil || itemObj.ItemData == nil {
+			continue
+		}
 
 		// アーカイブだったら除外
-		if *item.GetItem().ItemData.IsArchived {
+		if itemObj.ItemData.IsArchived != nil && *itemObj.ItemData.IsArchived {
 			continue
 		}
 
 		// アイテムを組み立てる
 		catalogItem := CatalogItem{
-			ID:   item.GetItem().ID,
-			Name: *item.GetItem().ItemData.Name,
+			ID:   itemObj.ID,
+			Name: *itemObj.ItemData.Name,
 		}
 
 		// Catalog Object ID
-		variations := item.GetItem().ItemData.GetVariations()
+		variations := itemObj.ItemData.GetVariations()
 
 		// バリエーションごとに持ってくる
-		catalogItem.Variations = make([]Variation, len(variations))
-		for i, v := range variations {
-			catalogItem.Variations[i] = Variation{
-				ID:       v.ItemVariation.ID,
-				Name:     *v.ItemVariation.ItemVariationData.GetName(),
-				SKU:      *v.ItemVariation.ItemVariationData.GetSku(),
-				Price:    *v.ItemVariation.ItemVariationData.PriceMoney.GetAmount(),
-				Sellable: *v.ItemVariation.ItemVariationData.GetSellable(),
+		fmt.Println(catalogItem)
+		for _, v := range variations {
+			if v == nil || v.ItemVariation == nil || v.ItemVariation.ItemVariationData == nil {
+				continue
 			}
+
+			variationData := v.ItemVariation.ItemVariationData
+			variation := Variation{
+				ID:       v.ItemVariation.ID,
+				Sellable: false,
+			}
+
+			if name := variationData.GetName(); name != nil {
+				variation.Name = *name
+			}
+			if sku := variationData.GetSku(); sku != nil {
+				variation.SKU = *sku
+			}
+			if variationData.PriceMoney != nil {
+				if amount := variationData.PriceMoney.GetAmount(); amount != nil {
+					variation.Price = *amount
+				}
+			}
+			if sellable := variationData.GetSellable(); sellable != nil {
+				variation.Sellable = *sellable
+			}
+
+			catalogItem.Variations = append(catalogItem.Variations, variation)
 		}
 		catalog.Items = append(catalog.Items, catalogItem)
 
